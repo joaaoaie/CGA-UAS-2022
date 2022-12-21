@@ -6,12 +6,16 @@ public class Drive : MonoBehaviour {
     private float translation;
     private float rotation;
     public Animator playerAnim;
+    public static GameObject controlledBy;
 
     void Awake() {
         playerAnim = this.GetComponent<Animator>();
     }
 
     void FixedUpdate() {
+        if(controlledBy != null){
+            return;
+        }
         translation = Input.GetAxis("Vertical") * speed;
         rotation = Input.GetAxis("Horizontal") * rotationSpeed;
         translation *= Time.fixedDeltaTime;

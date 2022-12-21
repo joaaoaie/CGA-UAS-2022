@@ -10,6 +10,9 @@ TagManager:
   - card
   - hatch
   - sphereBall
+  - oxygen
+  - oxygenChamber
+  - Lampu
   layers:
   - Default
   - TransparentFX

@@ -1,22 +1,35 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System;
 
 public class Interaction : MonoBehaviour {
     public Animator playerAnim, doorAnim, hatchAnim;
 
-    public TextMeshProUGUI uiInteract;
+    public TextMeshProUGUI uiInteract, uiDate, uiTime;
     public Image controlPanel;
-    private string isInteracting = null;
 
     public Collider other;
+    public int oxygen = 80;
+    public TextMeshProUGUI uiOxygen;
 
     public Button btnGenerator, btnDoor, closePanel;
 
+    private string isInteracting = null;
+    // private bool isPaused = false;
+    
     void Awake() {
+        GameObject[] lampu= GameObject.FindGameObjectsWithTag ("Lampu");
         playerAnim = this.GetComponent<Animator>();
 
         uiInteract = GameObject.Find("interactDialog").GetComponent<TextMeshProUGUI>();
+
+        uiDate = GameObject.Find("dateDialog").GetComponent<TextMeshProUGUI>();
+        uiTime = GameObject.Find("timeDialog").GetComponent<TextMeshProUGUI>();
+
+        uiOxygen = GameObject.Find("oxygenDialog").GetComponent<TextMeshProUGUI>();
+        uiOxygen.text = "Oxygen\n" + oxygen.ToString() + "%";
+        InvokeRepeating("oxygenDecrease", 1.0f, 5.0f);
 
         controlPanel = GameObject.Find("controlPanel").GetComponent<Image>();
 
@@ -26,19 +39,33 @@ public class Interaction : MonoBehaviour {
 
         btnGenerator.onClick.AddListener(() => {
             if(playerAnim.GetBool("generatorStatus")) {
+                btnGenerator.GetComponentInChildren<TextMeshProUGUI>().text = "Turn On Generator";
                 playerAnim.SetBool("generatorStatus", false);
-                // btnGenerator.GetComponentInChildren<TextMeshProUGUI>().text = "Turn On Generator";
+                foreach (GameObject i in lampu){
+                    i.SetActive(false);
+                }
+                GameObject.Find("Sound Effect/off").GetComponent<AudioSource>().Play(0);
             } else {
+                btnGenerator.GetComponentInChildren<TextMeshProUGUI>().text = "Turn Off Generator";
+                foreach (GameObject i in lampu){
+                    i.SetActive(true);
+                }
                 playerAnim.SetBool("generatorStatus", true);
-                // btnGenerator.GetComponentInChildren<TextMeshProUGUI>().text = "Turn Off Generator";
+                GameObject.Find("Sound Effect/on").GetComponent<AudioSource>().Play(0);
             }
         });
 
         btnDoor.onClick.AddListener(() => {
-            if(playerAnim.GetBool("unlockLobby"))
+            Light light = GameObject.Find("Point Light").GetComponent<Light>();
+            if(playerAnim.GetBool("unlockLobby")) {
+                btnDoor.GetComponentInChildren<TextMeshProUGUI>().text = "Unlock Door";
                 playerAnim.SetBool("unlockLobby", false);
-            else
+                light.color = Color.red;
+            } else {
+                btnDoor.GetComponentInChildren<TextMeshProUGUI>().text = "Lock Door";
                 playerAnim.SetBool("unlockLobby", true);
+                light.color = Color.green;
+            }
         });
 
         closePanel.onClick.AddListener(() => {
@@ -49,7 +76,24 @@ public class Interaction : MonoBehaviour {
         controlPanel.gameObject.SetActive(false);
     }
 
+    private void Update() {
+
+        if (Input.GetKeyUp(KeyCode.Escape)) {
+            if (Time.timeScale == 1) {
+                Time.timeScale = 0;
+                uiInteract.text = "Game Paused";
+                uiInteract.gameObject.SetActive(true);
+            } else {
+                Time.timeScale = 1;
+                uiInteract.gameObject.SetActive(false);
+            }
+        }
+    }
+
     void FixedUpdate() {
+        uiDate.text = DateTime.Now.ToString("dd MMMM yyyy");
+        uiTime.text = DateTime.Now.ToString("HH:mm:ss");
+        
         if (Input.GetKeyUp(KeyCode.E) && playerAnim.GetBool("generatorStatus") && isInteracting == "door") {
             if(doorAnim.GetBool("open"))
                 doorAnim.SetBool("open", false);
@@ -65,6 +109,7 @@ public class Interaction : MonoBehaviour {
 
         if (Input.GetKeyUp(KeyCode.E) && isInteracting == "computer" && playerAnim.GetBool("accessGranted")) {
             controlPanel.gameObject.SetActive(true);
+            GameObject.Find("Sound Effect/panel").GetComponent<AudioSource>().Play(0);
         }
 
         if (Input.GetKeyUp(KeyCode.E) && playerAnim.GetBool("generatorStatus") && isInteracting == "hatch") {
@@ -72,6 +117,11 @@ public class Interaction : MonoBehaviour {
                 hatchAnim.SetBool("open", false);
             else
                 hatchAnim.SetBool("open", true);
+        }
+
+        if (Input.GetKeyUp(KeyCode.E) && playerAnim.GetBool("generatorStatus") && isInteracting == "oxygen") {
+            oxygen = 100;
+            uiOxygen.text = "Oxygen\n" + oxygen.ToString() + "%";
         }
 
         if (Input.GetKeyUp(KeyCode.E) && isInteracting == "spawnBall" && playerAnim.GetBool("generatorStatus")) {
@@ -104,6 +154,17 @@ public class Interaction : MonoBehaviour {
             // ball.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.None;
             // ball.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
         }
+
+        // if(Input.GetKeyDown("escape")) {
+        //     if (!isPaused) {
+        //         uiInteract.text = "Game Paused";
+        //         uiInteract.gameObject.SetActive(true);
+        //         isPaused = true;
+        //     } else {
+        //         isPaused = false;
+        //         uiInteract.gameObject.SetActive(false);
+        //     }
+        // }
     }
 
     void OnTriggerEnter(Collider other) {
@@ -117,8 +178,7 @@ public class Interaction : MonoBehaviour {
                 } else if (other.gameObject.transform.parent.name == "Lobby Door") {
                     doorAnim = GameObject.Find("Lobby Door").GetComponent<Animator>();
                 isInteracting = "door";
-                } else if (other.gameObject.transform.parent.name == "Hatch Door") {
-                    doorAnim = GameObject.Find("Hatch Door").GetComponent<Animator>();
+                } else if (other.gameObject.transform.parent.name == "Hatch Wall") {
                     uiInteract.text = "Press E to spawn sphere ball";
                     isInteracting = "spawnBall";
                 }
@@ -164,12 +224,23 @@ public class Interaction : MonoBehaviour {
             uiInteract.text = "Press E to open/close hatch";
             uiInteract.gameObject.SetActive(true);
         }
+
+        if (other.gameObject.tag == "oxygenChamber"){
+            uiInteract.text = "Press E to refill oxygen";
+            uiInteract.gameObject.SetActive(true);
+            isInteracting = "oxygen";
+        }
     }
 
     void OnTriggerExit(Collider other) {
-        if(other.gameObject.tag == "consolePanel" || other.gameObject.tag == "computer" || other.gameObject.tag == "card" || other.gameObject.tag == "hatch") {
+        if(other.gameObject.tag == "consolePanel" || other.gameObject.tag == "computer" || other.gameObject.tag == "card" || other.gameObject.tag == "hatch" || other.gameObject.tag == "oxygenChamber") {
             uiInteract.gameObject.SetActive(false);
             isInteracting = null;
         }
+    }
+
+    void oxygenDecrease() {
+        oxygen -= 1;
+        uiOxygen.text = "Oxygen\n" + oxygen.ToString() + "%";
     }
 }
