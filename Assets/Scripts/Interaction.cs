@@ -60,6 +60,7 @@ public class Interaction : MonoBehaviour {
         });
 
         btnDoor.onClick.AddListener(() => {
+            foreach (AudioSource sound in sounds) { sound.Stop(); }
             if(unlockLobby) {
                 btnDoor.GetComponentInChildren<TextMeshProUGUI>().text = "Unlock Door";
                 unlockLobby = false;
@@ -69,9 +70,11 @@ public class Interaction : MonoBehaviour {
                 unlockLobby = true;
                 pointLight.color = Color.green;
             }
+            sounds[3].Play(0);
         });
 
         closePanel.onClick.AddListener(() => {
+            foreach (AudioSource sound in sounds) { sound.Stop(); }
             controlPanel.gameObject.SetActive(false);
         });
 
@@ -131,10 +134,6 @@ public class Interaction : MonoBehaviour {
         if(other.gameObject.tag == tags[0]) {
             string parentName = other.gameObject.transform.parent.name;
 
-            if (!unlockLobby) {
-                uiInteract.text = "Door Locked!";
-            }
-
             if (parentName == "Hatch Wall") {
                 uiInteract.text = "Press E to spawn sphere ball";
                 isInteracting = "spawnBall";
@@ -145,6 +144,12 @@ public class Interaction : MonoBehaviour {
                 }
                 doorAnim = other.GetComponentInParent<Animator>();
                 isInteracting = "door";
+            }
+
+            if (!unlockLobby && parentName == "Lobby Door") {
+                uiInteract.text = "Door Locked!";
+                doorAnim = null;
+                isInteracting = null;
             }
         } else
         if(other.gameObject.tag == tags[1]){
